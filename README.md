@@ -1,3 +1,54 @@
+# REDIS ROVER
+
+## Prerequisites
+
+Before you begin, ensure you have met the following requirements:
+
+- You have installed the latest version of [Node.js and npm](https://nodejs.org/en/download/) -> v20.9.0
+- You have installed [Yarn](https://yarnpkg.com/getting-started/install)
+- You have installed [Rust](https://www.rust-lang.org/tools/install)
+- You have a `<Windows/Linux/Mac>` 
+
+## Installing redis-rover-app
+
+To install redis-rover-app, follow these steps:
+
+1. Clone the repo
+
+2. Navigate into the project directory
+
+```
+cd redis-rover-app
+```
+
+3. Install dependencies
+
+```
+yarn install
+```
+
+4. To run as a web page:
+
+```
+yarn run dev
+```
+
+or to run the tauri app (this will allow connection to the backend on rust (also in the project))
+
+```
+yarn tauri dev
+```
+
+## Contact
+
+If you want to contact me you can reach me at `<abrahamchalita@hotmail.com>`.
+
+## License
+
+To be determined
+
+
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
