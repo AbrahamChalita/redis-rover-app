@@ -74,7 +74,7 @@ const ConnectionPage = () => {
           width: "100%",
           paddingTop: 3,
           paddingBottom: 5,
-          backgroundColor: "#363533",
+          backgroundColor: "#28292d",
         }}
       >
         <Typography
