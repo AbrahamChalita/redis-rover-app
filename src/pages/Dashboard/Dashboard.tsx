@@ -4,7 +4,6 @@ import {
   Grid,
   Box,
   Typography,
-  TextField,
   IconButton,
   List,
   ListItem,
@@ -12,6 +11,10 @@ import {
   Collapse,
   Divider,
   Chip,
+  Select,
+  MenuItem,
+  Menu,
+  Checkbox,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
@@ -26,6 +29,14 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import { useNavigate } from "react-router-dom";
+import {
+  ConnectionTextField,
+  SearchTextField,
+  StyledIconButton,
+} from "./styles";
+
+import { SelectedValueKey } from "./SelectedValueKey";
+
 
 type KeyType = "string" | "list" | "hash" | "set" | "zset";
 
@@ -44,46 +55,133 @@ const iconMap: Record<KeyType, JSX.Element> = {
 const Dashboard = () => {
   const [keys, setKeys] = useState<KeyData>({});
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [currentConnection, setCurrentConnection] = useState<string>("");
+  const [connectionStatus, setConnectionStatus] = useState<boolean>(false);
+  const [databases, setDatabases] = useState<any>([]);
+  const [selectedDatabase, setSelectedDatabase] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
   const navigate = useNavigate();
+  const allTypes = new Set<KeyType>(["string", "list", "hash", "set", "zset"]);
+  const [selectedTypes, setSelectedTypes] = useState(allTypes);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+
+  const [selectedKey, setSelectedKey] = useState<string>("");
+  const [selectedKeyType, setSelectedKeyType] = useState<KeyType>("string");
+
+
+  const handleClick = (event: any) => {
+    setAnchorEl(event.currentTarget);
+  };
+  
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+  
+
+  const fetchKeys = async (database:string) => {
+    try {
+      const dbNumber = Number(database);
+      const fetchedKeys: any = await invoke("get_keys_from_database", { db: dbNumber });
+      setKeys(fetchedKeys);
+    } catch (error) {
+      console.error("Error fetching keys:", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchKeys = async () => {
-      try {
-        const fetchedKeys: KeyData = await invoke("get_all_keys");
-        setKeys(fetchedKeys);
-      } catch (error) {
-        console.error("Error fetching keys:", error);
-      }
-    };
+    fetchKeys(selectedDatabase || "0");
+  }, [selectedDatabase]);
 
-    fetchKeys();
+  const getConnectionString = async () => {
+    try {
+      const connection: any = await invoke("get_current_client_url_and_port");
+      setCurrentConnection(connection);
+    } catch (error) {
+      console.error("Error fetching connection string:", error);
+    }
+  };
+
+  const testRedisConnection = async () => {
+    try {
+      const status: any = await invoke("check_connection");
+      if (status === "PONG") {
+        setConnectionStatus(true);
+      } else {
+        setConnectionStatus(false);
+      }
+    } catch (error) {
+      console.error("Error fetching connection string:", error);
+    }
+  };
+
+  const get_all_databases = async () => {
+    try {
+      const databases: any = await invoke("list_databases");
+      setDatabases(databases);
+      if(databases.length > 0) {
+        setSelectedDatabase(databases[0][0]);
+      }
+    } catch (error) {
+      console.error("Error fetching connection string:", error);
+    }
+  };
+
+  useEffect(() => {
+    getConnectionString();
+    testRedisConnection();
+    get_all_databases();
   }, []);
 
-  const handleToggle = (keyType: string) => {
-    setExpanded((prevExpanded) => {
-      const newExpanded = new Set(prevExpanded);
-      if (newExpanded.has(keyType)) {
-        newExpanded.delete(keyType);
-      } else {
-        newExpanded.add(keyType);
-      }
-      return newExpanded;
-    });
-  };
+  const refresh_data = async () => {
+    // refresh data with get_keys_from_database
+    fetchKeys(selectedDatabase || "0");
+  }
+
+const handleToggle = (keyType: KeyType) => {
+  setExpanded((prevExpanded) => {
+    const newExpanded = new Set(prevExpanded);
+    if (newExpanded.has(keyType)) {
+      newExpanded.delete(keyType);
+    } else {
+      newExpanded.add(keyType);
+    }
+    return newExpanded;
+  });
+};
 
   function isKeyType(key: string): key is KeyType {
     return ["string", "list", "hash", "set", "zset"].includes(key);
   }
 
+  const filteredKeys = Object.entries(keys).reduce(
+    (acc: KeyData, [keyType, keyList]) => {
+      if (!isKeyType(keyType) || !selectedTypes.has(keyType)) {
+        return acc;
+      }
+  
+      const filteredKeyList = keyList.filter((key) =>
+        key.toLowerCase().includes(search.toLowerCase())
+      );
+  
+      if (filteredKeyList.length > 0) {
+        acc[keyType] = filteredKeyList;
+      }
+  
+      return acc;
+    },
+    {}
+  );
+
   return (
-    <Grid container >
+    <Grid container>
       <Grid
         item
         sm={3}
         sx={{
-          backgroundColor: "#f5f5f5",
+          backgroundColor: "#28292d",
           height: "100vh",
-          width: "20%",
+          width: "25%",
           display: "flex",
           flexDirection: "column",
           position: "fixed",
@@ -102,22 +200,107 @@ const Dashboard = () => {
           <Typography
             sx={{
               fontSize: 16,
-              mr: 1,
+              mr: 0,
               fontWeight: 600,
+              color: "#dae0db",
             }}
           >
-            DB: 0
+            DB:
           </Typography>
-          <IconButton size="small">
+          <Select
+            size="small"
+            value={selectedDatabase}
+            onChange={(event) => {
+              setSelectedDatabase(event.target.value as string);
+            }}
+            renderValue={(selected) => selected}
+            sx={{
+              width: 50,
+              backgroundColor: "#1f2125",
+              color: "#dae0db",
+              "& .MuiSelect-icon": {
+                color: "#dae0db",
+              },
+              "& .MuiSelect-select": {
+                paddingLeft: 1.2,
+                paddingRight: 0,
+                paddingTop: 0,
+                paddingBottom: 0,
+                fontSize: 14,
+                fontWeight: 600,
+              },
+            }}
+          >
+            {databases.map((db: [string, boolean], index: number) => (
+              <MenuItem key={index} value={db[0]}>
+                {db[0]} {db[1] ? "(empty)" : "(data)"}
+              </MenuItem>
+            ))}
+          </Select>
+          <IconButton size="small" sx={{ color: "#dae0db" }}
+            onClick={refresh_data}
+          >
             <RefreshIcon />
           </IconButton>
-          <IconButton size="small">
+          <IconButton size="small" sx={{ color: "#dae0db" }}
+            onClick={handleClick}
+          >
             <MoreVertIcon />
           </IconButton>
+          <Menu
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleClose}
+          >
+          {["string", "list", "hash", "set", "zset"].map((type) => (
+            <MenuItem key={type}>
+              <Checkbox
+                checked={selectedTypes.has(type as KeyType)}
+                onChange={(event) => {
+                  const newSelectedTypes = new Set(selectedTypes);
+                  if (type === "all") {
+                    if (event.target.checked) {
+                      ["string", "list", "hash", "set", "zset"].forEach(t => newSelectedTypes.add(t as KeyType));
+                    } else {
+                      newSelectedTypes.clear();
+                    }
+                  } else {
+                    if (event.target.checked) {
+                      newSelectedTypes.add(type as KeyType);
+                    } else {
+                      newSelectedTypes.delete(type as KeyType);
+                    }
+                  }
+                  setSelectedTypes(newSelectedTypes);
+                }}
+              />
+              {type}
+            </MenuItem>
+          ))}
+          </Menu>
         </Box>
-        <Box sx={{ overflow: "auto", flexGrow: 1 }}>
+        <Box sx={{ 
+          overflow: "auto", 
+          flexGrow: 1,
+          direction: "rtl",
+          "&::-webkit-scrollbar": {
+            width: "4px",
+            backgroundColor: "#F5F5F5",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "#F90",
+            borderRadius: "2px",
+          },
+          "&::-webkit-scrollbar-track": {
+            boxShadow: "inset 0 0 6px rgba(0,0,0,0.3)",
+            borderRadius: "5px",
+          },
+          "& > *": {
+            direction: "ltr",
+          },
+          }}>
           <List>
-            {Object.entries(keys).map(([keyType, keyList]) => {
+            {Object.entries(filteredKeys).map(([keyType, keyList]) => {
               if (!isKeyType(keyType)) {
                 return null;
               }
@@ -125,7 +308,10 @@ const Dashboard = () => {
               return (
                 <div key={keyType}>
                   <ListItem
-                    onClick={() => handleToggle(keyType)}
+                    onClick={() => {
+                      handleToggle(keyType);
+                    }
+                    }
                     sx={{ px: 2 }}
                   >
                     <ArrowForwardIosIcon
@@ -133,15 +319,34 @@ const Dashboard = () => {
                         mr: 1,
                         transform: expanded.has(keyType) ? "rotate(90deg)" : "",
                         transition: "transform 0.2s ease-in-out",
-                        fontSize: 20,
+                        fontSize: 12,
+                        color: "white",
                       }}
                     />
-                    <ListItemText primary={keyType} />
+                    <ListItemText
+                      primary={keyType}
+                      sx={{
+                        "& .MuiListItemText-primary": {
+                          fontSize: 14,
+                          fontWeight: 600,
+                          color: "#dae0db",
+                        },
+                      }}
+                    />
                     <ListItemText
                       primary={keyList.length}
-                      sx={{ flexGrow: 1, textAlign: "right" }}
+                      sx={{
+                        flexGrow: 1,
+                        textAlign: "right",
+                        "& .MuiListItemText-primary": {
+                          fontSize: 14,
+                          fontWeight: 600,
+                          color: "#dae0db",
+                        },
+                      }}
                     />
                   </ListItem>
+                  <Divider />
                   <Collapse
                     in={expanded.has(keyType)}
                     timeout="auto"
@@ -151,9 +356,30 @@ const Dashboard = () => {
                       {keyList.map((key, index) => (
                         <React.Fragment key={`${keyType}-${index}`}>
                           {index > 0 && <Divider />}
-                          <ListItem sx={{ pl: 5 }}>
+                          <ListItem
+                            onClick={() => {
+                              setSelectedKey(key);
+                              setSelectedKeyType(keyType);
+                            }}
+                            sx={{
+                              pl: 5,
+                              backgroundColor: selectedKey === key ? "#bcd1f5" : "#9fa0a3",
+                              "&:hover": {
+                                backgroundColor: "#bcd1f5",
+                              },
+                            }}
+                          >
                             {isKeyType(keyType) && iconMap[keyType]}
-                            <ListItemText primary={key} />
+                            <ListItemText
+                              primary={key}
+                              sx={{
+                                "& .MuiListItemText-primary": {
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                  color: "black",
+                                },
+                              }}
+                            />
                           </ListItem>
                         </React.Fragment>
                       ))}
@@ -172,89 +398,80 @@ const Dashboard = () => {
             width: "90%",
           }}
         >
-          <TextField
+          <SearchTextField
             hiddenLabel
             id="outlined-hidden-label-small"
             placeholder="Search"
             variant="outlined"
             size="small"
-            sx={{ mb: 1, width: "100%" }}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </Box>
         <Grid container sx={{ height: 50 }}>
           <Grid item xs={6} sx={{ backgroundColor: "#ADD8E6" }}>
-            <IconButton
-              size="small"
-              sx={{
-                justifyContent: "center",
-                alignItems: "center",
-                display: "flex",
-                width: "100%",
-                height: "100%",
-                borderRadius: 0,
-              }}
-            >
+            <StyledIconButton size="small">
               <TerminalIcon />
-            </IconButton>
+            </StyledIconButton>
           </Grid>
           <Grid item xs={6} sx={{ backgroundColor: "#90EE90" }}>
-            <IconButton
-              size="small"
-              sx={{
-                justifyContent: "center",
-                alignItems: "center",
-                display: "flex",
-                width: "100%",
-                height: "100%",
-                borderRadius: 0,
-              }}
-            >
+            <StyledIconButton size="small">
               <AddIcon />
-            </IconButton>
+            </StyledIconButton>
           </Grid>
         </Grid>
       </Grid>
-      <Grid item xs={9}
+      <Grid
+        item
+        xs={8}
         sx={{
-            ml: "20%",
+          ml: "25%",
         }}
       >
         <Box
           sx={{
             p: 2,
             borderBottom: 1,
-            borderColor: "divider",
+            borderColor: "#0e0e10",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            width: "77%",
+            width: "72%",
             position: "fixed",
             zIndex: 1,
+            backgroundColor: "#28292d",
           }}
         >
           <Typography
             sx={{
               fontSize: 16,
               mr: 1,
+              mt: 1,
               fontWeight: 600,
+              color: "#dae0db",
             }}
           >
             Connection
           </Typography>
-          <TextField
+          <ConnectionTextField
             hiddenLabel
             id="outlined-hidden-label-small"
-            placeholder="localhost"
+            placeholder={currentConnection}
             size="small"
-            sx={{ ml: 2, flexGrow: 1, height: "2.15rem", mr: 2 }}
+            inputProps={{ readOnly: true }}
           />
-          <IconButton size="small">
+          <IconButton
+            size="small"
+            sx={{
+              color: "#dae0db",
+              ml: 2
+            }}
+          >
             <SettingsIcon />
           </IconButton>
           <Chip
-            label="Online"
+            label={connectionStatus ? "Online" : "Offline"}
             sx={{
-              backgroundColor: "#90EE90",
+              backgroundColor: connectionStatus ? "#90EE90" : "#FF6347",
               color: "#333333",
               fontWeight: 600,
               height: 25,
@@ -264,14 +481,40 @@ const Dashboard = () => {
               ml: 2,
             }}
           />
-          <IconButton size="small">
-            <ExitToAppIcon 
-                onClick={() => {
-                    navigate(-1)
-                }
-            }
-            />
+          <IconButton
+            size="small"
+            sx={{
+              color: "#dae0db",
+            }}
+            onClick={() => {
+              navigate(-1);
+            }}
+          >
+            <ExitToAppIcon />
           </IconButton>
+        </Box>
+        <Box
+          sx={{
+            width: "80%",
+            backgroundColor: "#1f2125",
+            height: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            position: "fixed",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: -1,
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: "white",
+            }}
+          >
+            <SelectedValueKey selectedKey={selectedKey} keyType={selectedKeyType} />
+          </Typography>
         </Box>
       </Grid>
     </Grid>

@@ -58,7 +58,69 @@ async fn get_all_keys(client: tauri::State<'_, Mutex<RedisClient>>) -> Result<Ha
     Ok(data_by_type)
 }
 
+// get all keys from given database with keys type
+#[tauri::command]
+async fn get_keys_from_database(db: usize, client: tauri::State<'_, Mutex<RedisClient>>) -> Result<HashMap<String, Vec<String>>, String> {
+    let mut client = client.lock().unwrap();
+    let keys = match client.get_keys_from_database(db) {
+        Ok(keys) => keys,
+        Err(err) => {
+            println!("Error: {}", err);
+            return Err("Internal Server Error".to_string());
+        },
+    };
 
+    let mut data_by_type = std::collections::HashMap::new();
+
+    for key in keys {
+        let key_type = match client.get_key_type(&key) {
+            Ok(key_type) => key_type,
+            Err(err) => {
+                println!("Error: {}", err);
+                continue;
+            },
+        };
+
+        data_by_type.entry(key_type).or_insert(Vec::new()).push(key);
+    }
+
+    Ok(data_by_type)
+}
+
+
+// function to retrieve current client url and port
+#[tauri::command]
+async fn get_current_client_url_and_port(state: tauri::State<'_, Mutex<RedisClient>>) -> Result<String, String> {
+    let client = state.lock().unwrap();
+    let current_url = client.get_current_url();
+    Ok(current_url.to_string())
+}
+
+// function to check connection
+#[tauri::command]
+async fn check_connection(state: tauri::State<'_, Mutex<RedisClient>>) -> Result<String, String> {
+    let mut client = state.lock().unwrap();
+    let pong = match client.check_connection() {
+        Ok(pong) => pong,
+        Err(err) => {
+            println!("Error: {}", err);
+            return Err("Internal Server Error".to_string());
+        },
+    };
+    Ok(pong)
+}
+
+#[tauri::command]
+async fn list_databases(state: tauri::State<'_, Mutex<RedisClient>>) -> Result<Vec<(usize, bool)>, String> {
+    let mut client = state.lock().unwrap();
+    match client.list_databases() {
+        Ok(databases) => Ok(databases),
+        Err(err) => {
+            println!("Error: {}", err);
+            Err("Internal Server Error".to_string())
+        },
+    }
+}
 
 
 // Additional Tauri commands can be added here
@@ -68,7 +130,14 @@ fn main() {
 
   tauri::Builder::default()
       .manage(Mutex::new(redis_client)) // manage the state of your Redis client
-      .invoke_handler(tauri::generate_handler![test_redis_connection, get_all_keys])
+      .invoke_handler(tauri::generate_handler![
+        test_redis_connection, 
+        get_all_keys, 
+        get_current_client_url_and_port, 
+        check_connection,
+        list_databases,
+        get_keys_from_database
+        ])
       .run(tauri::generate_context!())
       .expect("error while running tauri application");
 }
