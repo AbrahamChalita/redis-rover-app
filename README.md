@@ -1,5 +1,8 @@
 # REDIS ROVER
 
+![imagen](https://github.com/AbrahamChalita/redis-rover-app/assets/54871116/f0d5bf93-8574-4aea-bd5a-4930fb0715c1)
+
+
 ## Prerequisites
 
 Before you begin, ensure you have met the following requirements:
