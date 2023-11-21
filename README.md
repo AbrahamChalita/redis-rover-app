@@ -1,5 +1,12 @@
 # REDIS ROVER
 
+* The app is currently on the first stages of development. Right now it can only handle local connections. I plan to add:
+
+- Console with command invoking functionality
+- TTL management
+- SSH tunneling
+- Favorite connections
+
 ![imagen](https://github.com/AbrahamChalita/redis-rover-app/assets/54871116/f0d5bf93-8574-4aea-bd5a-4930fb0715c1)
 
 
