@@ -7,7 +7,7 @@ The app is currently on the first stages of development. Right now it can only h
 - SSH tunneling
 - Favorite connections
 
-![imagen](https://github.com/AbrahamChalita/redis-rover-app/assets/54871116/f0d5bf93-8574-4aea-bd5a-4930fb0715c1)
+![imagen](https://github.com/AbrahamChalita/redis-rover-app/assets/54871116/2963627c-ed52-410a-950d-5f6a55cfcd0c)
 
 
 ## Prerequisites
