@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { green, red } from "@mui/material/colors";
 import CheckIcon from "@mui/icons-material/Check";
-import { ContentContainer } from "./styles";
+import { ContentContainer, BottomContainer, BottomContainerTitle } from "./styles";
 import { invoke } from "@tauri-apps/api/tauri";
 import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
@@ -44,7 +44,7 @@ const ConnectionPage = () => {
     setLoading(true);
     setSuccess(false);
 
-    const timeout = new Promise((resolve) => setTimeout(resolve, 1500));
+    const timeout = new Promise((resolve) => setTimeout(resolve, 1000));
     const testConnection = invoke("test_redis_connection", {
       redisUrl,
       port: redisPort,
@@ -67,28 +67,10 @@ const ConnectionPage = () => {
 
   return (
     <ContentContainer>
-      <Box
-        sx={{
-          position: "fixed",
-          bottom: 0,
-          width: "100%",
-          paddingTop: 3,
-          paddingBottom: 5,
-          backgroundColor: "#28292d",
-        }}
-      >
-        <Typography
-          sx={{
-            fontSize: 18,
-            fontWeight: 600,
-            textAlign: "left",
-            color: "white",
-            marginLeft: 5,
-            marginBottom: 2,
-          }}
-        >
+      <BottomContainer>
+        <BottomContainerTitle>
           Easy Connection
-        </Typography>
+        </BottomContainerTitle>
         <Grid
           container
           spacing={2}
@@ -244,7 +226,7 @@ const ConnectionPage = () => {
             }
           />
         </Grid>
-      </Box>
+      </BottomContainer>
     </ContentContainer>
   );
 };

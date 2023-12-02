@@ -9,11 +9,17 @@ export const SearchTextField = styled(TextField)`
   & .MuiInputBase-input::placeholder {
     color: white;
   }
+  & .MuiInputBase-input {
+    color: white;
+  }
   & .MuiOutlinedInput-notchedOutline {
-    borderColor: white;
+    borderColor: blue;
   }
   &:hover .MuiOutlinedInput-notchedOutline {
-    borderColor: white;
+    borderColor: blue;
+  }
+  &.Mui-focused .MuiOutlinedInput-notchedOutline {
+    borderColor: blue;
   }
 `;
 

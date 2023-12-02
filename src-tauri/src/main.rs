@@ -123,7 +123,48 @@ async fn list_databases(state: tauri::State<'_, Mutex<RedisClient>>) -> Result<V
 }
 
 
-// Additional Tauri commands can be added here
+#[tauri::command]
+async fn get_key_value(
+    key: String, 
+    key_type: String, 
+    state: tauri::State<'_, Mutex<RedisClient>>
+) -> Result<(String, usize), String> {
+    let mut client = state.lock().unwrap();
+    let value = match key_type.as_str() {
+        "string" => {
+            client.get_string_value(&key)
+                .map_err(|err| err.to_string())?
+        },
+        "list" => {
+            let list: Vec<String> = client.get_list_value(&key)
+                .map_err(|err| err.to_string())?;
+            serde_json::to_string(&list).unwrap()
+        },
+        "set" => {
+            let set: Vec<String> = client.get_set_value(&key)
+                .map_err(|err| err.to_string())?;
+            serde_json::to_string(&set).unwrap()
+        },
+        "hash" => {
+            let hash: Vec<(String, String)> = client.get_hash_value(&key)
+                .map_err(|err| err.to_string())?;
+            serde_json::to_string(&hash).unwrap()
+        },
+        "zset" => {
+            let zset: Vec<(String, f64)> = client.get_sorted_set_value(&key)
+                .map_err(|err| err.to_string())?;
+            serde_json::to_string(&zset).unwrap()
+        },
+        _ => return Err("Unsupported key type".to_string()),
+    };
+
+    let memory_usage = client.get_memory_usage(&key)
+        .map_err(|err| err.to_string())?;
+
+    Ok((value, memory_usage))
+}
+
+
 
 fn main() {
   let redis_client = RedisClient::new("redis://localhost:6379").unwrap(); // replace with your default Redis client
@@ -136,7 +177,8 @@ fn main() {
         get_current_client_url_and_port, 
         check_connection,
         list_databases,
-        get_keys_from_database
+        get_keys_from_database,
+        get_key_value
         ])
       .run(tauri::generate_context!())
       .expect("error while running tauri application");

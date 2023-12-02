@@ -67,42 +67,37 @@ impl RedisClient {
         Ok(result)
     }
 
-    // pub fn get_key_value(&mut self, key: &str) -> RedisResult<serde_json::Value> {
-    //     let key_type = self.get_key_type(key)?;
+    pub fn get_string_value(&mut self, key: &str) -> RedisResult<String> {
+        let value: String = self.connection.get(key)?;
+        Ok(value)
+    }
 
-    //     match key_type.as_str() {
-    //         "string" => {
-    //             self.connection.get(key).map(|v: String| serde_json::to_value(v).unwrap())
-    //         },
-    //         "hash" => {
-    //             let hash: RedisResult<HashMap<String, String>> = self.connection.hgetall(key);
-    //             hash.map(|h| serde_json::to_value(h).unwrap())
-    //         },
-    //         "list" => {
-    //             let list: RedisResult<Vec<String>> = self.connection.lrange(key, 0, -1);
-    //             list.map(|l| serde_json::to_value(l).unwrap())
-    //         },
-    //         "set" => {
-    //             let set: RedisResult<Vec<String>> = self.connection.smembers(key);
-    //             set.map(|s| serde_json::to_value(s).unwrap())
-    //         },
-    //         "zset" => {
-    //             let zset: RedisResult<Vec<(String, f64)>> = self.connection.zrange_withscores(key, 0, -1);
-    //             zset.map(|zs| serde_json::to_value(zs).unwrap())
-    //         },
-    //         "stream" => {
-    //             let stream: RedisResult<Vec<(String, HashMap<String, String>)>> = self.connection.xrange_count(key, "-", "+", 10);
-    //             stream.map(|st| serde_json::to_value(st).unwrap())
-    //         },
-            
-        
-    //         _ => Err(RedisError::from((
-    //             redis::ErrorKind::TypeError,
-    //             "Unsupported key type"
-    //         ))),
-    //     }
-    // }
-    
-    
+    pub fn get_hash_value(&mut self, key: &str) -> RedisResult<Vec<(String, String)>> {
+        let value: Vec<(String, String)> = self.connection.hgetall(key)?;
+        Ok(value)
+    }
+
+    pub fn get_list_value(&mut self, key: &str) -> RedisResult<Vec<String>> {
+        let value: Vec<String> = self.connection.lrange(key, 0, -1)?;
+        Ok(value)
+    }
+
+    pub fn get_set_value(&mut self, key: &str) -> RedisResult<Vec<String>> {
+        let value: Vec<String> = self.connection.smembers(key)?;
+        Ok(value)
+    }
+
+    pub fn get_sorted_set_value(&mut self, key: &str) -> RedisResult<Vec<(String, f64)>> {
+        let value: Vec<(String, f64)> = self.connection.zrange_withscores(key, 0, -1)?;
+        Ok(value)
+    }
+
+    pub fn get_memory_usage(&mut self, key: &str) -> RedisResult<usize> {
+        let memory_usage: usize = redis::cmd("MEMORY")
+            .arg("USAGE")
+            .arg(key)
+            .query(&mut self.connection)?;
+        Ok(memory_usage)
+    }
 
 }   
